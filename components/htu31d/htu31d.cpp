@@ -33,6 +33,20 @@ static const uint8_t MGOS_HTU31D_HEATEROFF = (0x02);
 static const uint8_t MGOS_HTU31D_READREG = (0x0A);
 static const uint8_t MGOS_HTU31D_RESET = (0x1E);
 
+static uint8_t crc8(const uint8_t *data, int len) {
+  const uint8_t poly = 0x31;
+  uint8_t crc = 0x00;
+
+  for (int j = len; j; --j) {
+    crc ^= *data++;
+    for (int i = 8; i; --i) {
+      crc = (crc & 0x80) ? (crc << 1) ^ poly : (crc << 1);
+    }
+  }
+
+  return crc;
+}
+
 void HTU31DComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HTU31D...");
   parent_->dump_config();
@@ -55,6 +69,7 @@ void HTU31DComponent::setup() {
   if (!read_bytes_raw(version, 4)) {
     this->status_set_warning();
   }
+
   if (version[3] == crc8(version, 3)) {
     ESP_LOGI(TAG,
              "HTU31D serial number 0x%02hhx%02hhx%02hhx created at I2C 0x%02x",
