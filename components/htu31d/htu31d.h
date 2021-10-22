@@ -44,6 +44,14 @@ class HTU31DComponent : public PollingComponent, public i2c::I2CDevice {
  protected:
   sensor::Sensor *temperature_{nullptr};
   sensor::Sensor *humidity_{nullptr};
+
+ private:
+  /*
+   * equivalent of previous bool I2CComponent::read_bytes(uint8_t a_register,
+   * uint8_t *data, uint8_t len, uint32_t conversion)
+   */
+  bool read_reg_with_wait(uint8_t a_register, uint8_t *data, uint8_t len,
+                          uint32_t conversion);
 };
 
 }  // namespace htu31d

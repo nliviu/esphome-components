@@ -50,7 +50,6 @@ static uint8_t crc8(const uint8_t *data, int len) {
 
 void HTU31DComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HTU31D...");
-  parent_->dump_config();
 
   if (!write_bytes(MGOS_HTU31D_RESET, nullptr, 0)) {
     this->mark_failed();
@@ -60,8 +59,8 @@ void HTU31DComponent::setup() {
   // Wait for software reset to complete
   delay(15);
   // Get version
-  ESP_LOGCONFIG(TAG, "Get version - write_bytes_raw");
-  if (!write_bytes_raw(&MGOS_HTU31D_READREG, 1)) {
+  ESP_LOGCONFIG(TAG, "Get version - write");
+  if (!write(&MGOS_HTU31D_READREG, 1)) {
     this->status_set_warning();
     return;
   }
@@ -95,14 +94,15 @@ void HTU31DComponent::dump_config() {
 /// Update the sensor values (temperature+humidity).
 void HTU31DComponent::update() {
   /* start conversion */
-  if (!write_bytes(MGOS_HTU31D_CONVERSION, nullptr, 0)) {
+  if (write(&MGOS_HTU31D_CONVERSION, 1) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Failed to start conversion");
     this->status_set_warning();
     return;
   }
   delay(20);
   uint8_t data[6]{0};
-  if (!read_bytes(MGOS_HTU31D_READTEMPHUM, data, 6, 20)) {
+
+  if (!read_reg_with_wait(MGOS_HTU31D_READTEMPHUM, data, 6, 20)) {
     ESP_LOGE(TAG, "Failed to read 6 bytes of data");
     this->status_set_warning();
     return;
@@ -142,6 +142,18 @@ void HTU31DComponent::update() {
 
 float HTU31DComponent::get_setup_priority() const {
   return setup_priority::DATA;
+}
+
+bool HTU31DComponent::read_reg_with_wait(uint8_t a_register, uint8_t *data,
+                                         uint8_t len, uint32_t conversion) {
+  i2c::ErrorCode err = write(&a_register, 1);
+  if (err != i2c::ERROR_OK) {
+    return false;
+  }
+  if (conversion != 0) {
+    delay(conversion);
+  }
+  return read(data, len) == i2c::ERROR_OK;
 }
 
 }  // namespace htu31d
