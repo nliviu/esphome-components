@@ -1,6 +1,9 @@
 #include "st7789.h"
 
+#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+
+#include "Esp.h"
 
 namespace esphome {
 namespace st7789 {
